@@ -83,13 +83,13 @@ std::array<std::array<std::vector<ray_physics::segment>, sample_count>, ray_coun
         {
             // auto & segments_vector = segments[ray_i];
             auto & samples_vector = segments[ray_i];
-            std::array<ray, sample_count> samples;
-
-            // std::vector<ray> ray_stack;
-            // ray_stack.reserve(ray::max_depth-1);// TODO: maybe not enough to get necessary information
-
-            // Add first ray
+            for(size_t sample_i=0; sample_i < sample_count; sample_i++)
             {
+                std::vector<ray> ray_stack;
+                ray_stack.reserve(ray::max_depth-1);// TODO: maybe not enough to get necessary information
+                // std::array<ray, sample_count> samples;
+                // Add first ray
+                // {
                 ray first_ray
                 {
                     //transducer_pos + btVector3(0,0,ray_start_step * ray_i),
@@ -104,22 +104,24 @@ std::array<std::array<std::vector<ray_physics::segment>, sample_count>, ray_coun
                     units::length::millimeter_t(0),                              // distance traveled [mm]
                     0                                                            // previous ray
                 };
-                // ray_stack.push_back(first_ray);
-                for(size_t sample_i = 0; sample_i < sample_count; sample_i ++)
+
+                ray_stack.push_back(first_ray);
+                // for(size_t sample_i = 0; sample_i < sample_count; sample_i++)
+                // {
+                //     samples.at(sample_i) = first_ray;
+                //     // TODO: consider add stack 
+                // }
+                // }
+                // indexMove++;
+                while (ray_stack.size() > 0)
+                // for (size_t sample_i = 0; sample_i < sample_count; sample_i++)
                 {
-                    samples.at(sample_i) = first_ray;
-                    // TODO: consider add stack 
-                }
-            }
-            // indexMove++;
-            // while (ray_stack.size() > 0)
-            for (size_t sample_i = 0; sample_i < sample_count; sample_i++)
-            {
-                // Pop a ray from the stack and check if it collides
-                auto & ray_ = samples.at(sample_i);
-                // auto & ray_ = ray_stack.at(ray_stack.size()-1);
-                if (!ray_.null)
-                {
+               
+                    // Pop a ray from the stack and check if it collides
+                     // auto & ray_ = samples.at(sample_i);
+                    auto & ray_ = ray_stack.at(ray_stack.size()-1);
+                    // if (!ray_.null)
+                    // {
                     float r_length = ray_physics::max_ray_length(ray_); //[mm]
                     auto to = ray_.from + enlarge(ray_.direction, r_length); //[mm]
             
@@ -129,7 +131,7 @@ std::array<std::array<std::vector<ray_physics::segment>, sample_count>, ray_coun
 
                     tests++;
 
-                    // ray_stack.pop_back();
+                    ray_stack.pop_back();
                     if (closestResults.hasHit())
                     {
                         if (ray_.depth < ray::max_depth)
@@ -158,13 +160,13 @@ std::array<std::array<std::vector<ray_physics::segment>, sample_count>, ray_coun
                         {   
                             // result.refraction.parent_collision = segments_vector.size()-1;
                             result.refraction.parent_collision = samples_vector[sample_i].size()-1;
-                            // ray_stack.push_back(result.refraction);
-                            samples.at(sample_i) = result.refraction;
+                            ray_stack.push_back(result.refraction);
+                            // samples.at(sample_i) = result.refraction;
                         }
-                        else
-                        {
-                            samples.at(sample_i).null = true;
-                        }
+                        // else
+                        // {
+                        //     samples.at(sample_i).null = true;
+                        // }
                         
 
                         // if (result.reflection.intensity > ray::intensity_epsilon)
@@ -175,18 +177,17 @@ std::array<std::array<std::vector<ray_physics::segment>, sample_count>, ray_coun
                         }
                     
                     }
-                else
-                {
+                    else
+                    {
                     // Ray did not reach another media, add a data point at its end.
                     // segments_vector.emplace_back(segment{ray_.from, to, ray_.direction, 0.0f, ray_.intensity, ray_.media.attenuation, ray_.distance_traveled, ray_.media});
-                    samples_vector[sample_i].emplace_back(segment{ray_.from, to, ray_.direction, 0.0f, ray_.intensity, ray_.media.attenuation, ray_.distance_traveled, ray_.media});
-                    samples.at(sample_i).null = true;
-                }
-                    
+                        samples_vector[sample_i].emplace_back(segment{ray_.from, to, ray_.direction, 0.0f, ray_.intensity, ray_.media.attenuation, ray_.distance_traveled, ray_.media});
+                    // samples.at(sample_i).null = true;
+                    }
                 }  
             }
         }
-
+              
         for (auto & collision_vector : segments)
         {
             total_collisions += collision_vector.size();
