@@ -1,8 +1,9 @@
+#include "transducer.h"
 #include "scene.h"
 #include "volume.h"
 #include "psf.h"
 #include "rfimage.h"
-#include "transducer.h"
+
 
 #include <cmath>
 #include <iostream>
@@ -21,6 +22,7 @@ constexpr float transducer_frequency = 4.5f; // [Mhz]
 // TODO: which way to get axial resolution is more persuasive?
 constexpr millimeter_t axial_resolution = millimeter_t(1.45f / transducer_frequency); // [mm], the division can be deduced from Burger13 
 constexpr size_t transducer_elements = 2048;
+constexpr size_t samples_te = 5; 
 constexpr radian_t transducer_amplitude = 60_deg;
 // TODO: how to measure this model(partial circle)
 constexpr centimeter_t transducer_radius = 3_cm;
@@ -93,42 +95,49 @@ int main(int argc, char** argv)
         {
             rf_image.clear();
 
-            auto rays = scene.cast_rays<transducer_elements>();
-
+            // auto rays = scene.cast_rays<transducer_elements>();
+            auto rays = scene.cast_rays<samples_te, transducer_elements>(transducer);
             for (unsigned int ray_i = 0; ray_i < rays.size(); ray_i++)
             {
                 const auto & ray = rays[ray_i];
-                for (auto & segment : ray)
+                for (unsigned int sample_i = 0; sample_i < samples_te; sample_i++)
                 {
-                    const auto starting_micros = rf_image.micros_traveled(segment.distance_traveled /*mm -> μm*/);
-                    const auto distance = scene.distance(segment.from, segment.to); // [mm]
-                    const auto steps = distance / axial_resolution;
-                    const auto delta_step = axial_resolution.to<float>() * segment.direction;
-                    const auto time_step = rf_image.micros_traveled(axial_resolution); // [μs]
-
-                    auto point = segment.from;
-                    auto time_elapsed = starting_micros;
-                    auto intensity = segment.initial_intensity;
-
-                    for (unsigned int step = 0; step < steps && time_elapsed < max_travel_time; step++)
+                    const auto & sample = ray[sample_i];
+                    // for (auto & segment : ray)
+                    for(auto & segment: sample)
                     {
-                        float scattering = texture_volume.get_scattering(segment.media.mu1, segment.media.mu0, segment.media.sigma, point.x(), point.y(), point.z());
-                        // float scattering = 0;
-                        float scatter = intensity * scattering + distr(generator);
-                        rf_image.add_echo(ray_i, scatter, time_elapsed);
-                        
-                        // Step forward through the segment, decreasing intensity using Beer-Lambert's law
-                        point += delta_step;
-                        time_elapsed = time_elapsed + time_step;
 
-                        constexpr auto k = 0.1f;
-                        intensity *= std::exp(-segment.attenuation * axial_resolution.to<float>()*0.1f * transducer_frequency * k);
+                        const auto starting_micros = rf_image.micros_traveled(segment.distance_traveled /*mm -> μm*/);
+                        const auto distance = scene.distance(segment.from, segment.to); // [mm]
+                        const auto steps = distance / axial_resolution;
+                        const auto delta_step = axial_resolution.to<float>() * segment.direction;
+                        const auto time_step = rf_image.micros_traveled(axial_resolution); // [μs]
+
+                        auto point = segment.from;
+                        auto time_elapsed = starting_micros;
+                        auto intensity = segment.initial_intensity;
+
+                        for (unsigned int step = 0; step < steps && time_elapsed < max_travel_time; step++)
+                        {
+                            float scattering = texture_volume.get_scattering(segment.media.mu1, segment.media.mu0, segment.media.sigma, point.x(), point.y(), point.z());
+                            // float scattering = 0;
+                            float scatter = intensity * scattering + distr(generator);
+                            rf_image.add_echo(ray_i, scatter, time_elapsed);
+                        
+                            // Step forward through the segment, decreasing intensity using Beer-Lambert's law
+                            point += delta_step;
+                            time_elapsed = time_elapsed + time_step;
+
+                            constexpr auto k = 0.1f;
+                            intensity *= std::exp(-segment.attenuation * axial_resolution.to<float>()*0.1f * transducer_frequency * k);
+                        }
+
+                        // Add reflection term, i.e. intensity directly reflected back to the transducer. See Burger13, Eq. 10.
+                        // rf_image.add_echo(ray_i, segment.reflected_intensity, starting_micros + time_step * (steps-1));
+                        rf_image.add_echo(ray_i, (segment.reflected_intensity)/samples_te, starting_micros + time_step * (steps-1));
                     }
 
-                    // Add reflection term, i.e. intensity directly reflected back to the transducer. See Burger13, Eq. 10.
-                    rf_image.add_echo(ray_i, segment.reflected_intensity, starting_micros + time_step * (steps-1));
-
-                }
+                }    
 
             }
 

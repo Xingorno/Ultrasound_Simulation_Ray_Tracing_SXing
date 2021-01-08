@@ -10,7 +10,8 @@
 
 //template std::array<std::vector<ray_physics::segment>, 256> scene::cast_rays<256>();
 // template std::array<std::vector<ray_physics::segment>, 1024> scene::cast_rays<1024>();
-template std::array<std::vector<ray_physics::segment>, 2048> scene::cast_rays<2048>();
+// template std::array<std::vector<ray_physics::segment>, 2048> scene::cast_rays<2048>();
+template std::array<std::array<std::vector<ray_physics::segment>, 5>, 2048> scene::cast_rays<5, 2048>(transducer_ & transducer);
 // template std::array<std::vector<ray_physics::segment>, 512> scene::cast_rays<512>();
 scene::scene(const nlohmann::json & config, transducer_ & transducer) :
     transducer(transducer)
@@ -46,12 +47,15 @@ void scene::init()
     }
 }
 
-template<unsigned int ray_count>
-std::array<std::vector<ray_physics::segment>, ray_count> scene::cast_rays()
+// template<unsigned int ray_count>
+// std::array<std::vector<ray_physics::segment>, ray_count> scene::cast_rays()
+template<unsigned int sample_count, unsigned int ray_count>
+std::array<std::array<std::vector<ray_physics::segment>, sample_count>, ray_count> scene::cast_rays(transducer_ & transducer)
 {
     using namespace ray_physics;
 
-    std::array<std::vector<segment>, ray_count> segments;
+    // std::array<std::vector<segment>, ray_count> segments;
+    std::array<std::array<std::vector<segment>, sample_count>, ray_count> segments;
 
     unsigned int tests = 0;
     unsigned int total_collisions = 0;
@@ -61,19 +65,28 @@ std::array<std::vector<ray_physics::segment>, ray_count> scene::cast_rays()
     {
         const float ray_start_step { 2.0f }; // move transducer along fixed gap [mm]
 
-        for (auto & segments_vector : segments)
+        // for (auto & segments_vector : segments)
+        // {
+        //     segments_vector.reserve(std::pow(2, ray::max_depth));
+        // }
+        // allocate vecotr capacity
+        for (auto & sample_vector : segments) //understanding: https://stackoverflow.com/questions/35490236/colon-and-auto-in-for-loop-c-need-some-help-understanding-the-syntax
         {
-            segments_vector.reserve(std::pow(2, ray::max_depth));
+            for (auto & segments_vector : sample_vector )
+            {
+                segments_vector.reserve(ray::max_depth);
+            }
         }
-
         //#pragma omp parallel for
         // size_t ray_i = 685;
         for (size_t ray_i = 0; ray_i < ray_count; ray_i++)
         {
-            auto & segments_vector = segments[ray_i];
+            // auto & segments_vector = segments[ray_i];
+            auto & samples_vector = segments[ray_i];
+            std::array<ray, sample_count> samples;
 
-            std::vector<ray> ray_stack;
-            ray_stack.reserve(ray::max_depth-1);// TODO: maybe not enough to get necessary information
+            // std::vector<ray> ray_stack;
+            // ray_stack.reserve(ray::max_depth-1);// TODO: maybe not enough to get necessary information
 
             // Add first ray
             {
@@ -91,30 +104,36 @@ std::array<std::vector<ray_physics::segment>, ray_count> scene::cast_rays()
                     units::length::millimeter_t(0),                              // distance traveled [mm]
                     0                                                            // previous ray
                 };
-                ray_stack.push_back(first_ray);
+                // ray_stack.push_back(first_ray);
+                for(size_t sample_i = 0; sample_i < sample_count; sample_i ++)
+                {
+                    samples.at(sample_i) = first_ray;
+                    // TODO: consider add stack 
+                }
             }
             // indexMove++;
-            while (ray_stack.size() > 0)
+            // while (ray_stack.size() > 0)
+            for (size_t sample_i = 0; sample_i < sample_count; sample_i++)
             {
                 // Pop a ray from the stack and check if it collides
-
-                auto & ray_ = ray_stack.at(ray_stack.size()-1);
-
-                float r_length = ray_physics::max_ray_length(ray_); //[mm]
-                auto to = ray_.from + enlarge(ray_.direction, r_length); //[mm]
-            
-                btCollisionWorld::ClosestRayResultCallback closestResults(ray_.from + ray_.direction * 0.1,to); // adding ray_direction * 0.1 is for uncorrect ray tracing operation nearby the "from" point 
-
-                m_dynamicsWorld->rayTest(ray_.from + ray_.direction * 0.1,to,closestResults);
-
-                tests++;
-
-                ray_stack.pop_back();
-
-                if (closestResults.hasHit())
+                auto & ray_ = samples.at(sample_i);
+                // auto & ray_ = ray_stack.at(ray_stack.size()-1);
+                if (!ray_.null)
                 {
-                    if (ray_.depth < ray::max_depth)
+                    float r_length = ray_physics::max_ray_length(ray_); //[mm]
+                    auto to = ray_.from + enlarge(ray_.direction, r_length); //[mm]
+            
+                    btCollisionWorld::ClosestRayResultCallback closestResults(ray_.from + ray_.direction * 0.1,to); // adding ray_direction * 0.1 is for uncorrect ray tracing operation nearby the "from" point 
+
+                    m_dynamicsWorld->rayTest(ray_.from + ray_.direction * 0.1,to,closestResults);
+
+                    tests++;
+
+                    // ray_stack.pop_back();
+                    if (closestResults.hasHit())
                     {
+                        if (ray_.depth < ray::max_depth)
+                        {
                         // Substract ray intensity according to distance traveled
                         auto distance_before_hit = ray_.distance_traveled;
                         auto intensity_before_hit = ray_.intensity;
@@ -130,29 +149,41 @@ std::array<std::vector<ray_physics::segment>, ray_count> scene::cast_rays()
                         // Register collision creating a segment from the beginning of the ray to the collision point
                         //segments_vector.emplace_back(segment{ray_.from, closestResults.m_hitPointWorld, ray_.direction, result.reflected_intensity, intensity_before_hit, ray_.media.attenuation, result.reflection.distance_traveled, ray_.media});
 
-                        segments_vector.emplace_back(segment{ray_.from, closestResults.m_hitPointWorld, ray_.direction, result.reflected_intensity, intensity_before_hit, ray_.media.attenuation, distance_before_hit, ray_.media});
-
+                        // segments_vector.emplace_back(segment{ray_.from, closestResults.m_hitPointWorld, ray_.direction, result.reflected_intensity, intensity_before_hit, ray_.media.attenuation, distance_before_hit, ray_.media});
+                        samples_vector[sample_i].emplace_back(segment{ray_.from, closestResults.m_hitPointWorld, ray_.direction, result.reflected_intensity, intensity_before_hit, ray_.media.attenuation, distance_before_hit, ray_.media});
                         // Spawn reflection and refraction rays
                         // TODO: igonre reflection ray??
                         if (result.refraction.intensity > ray::intensity_epsilon)
                         // if (result.refraction.intensity > 0.0001)
                         {   
-                            result.refraction.parent_collision = segments_vector.size()-1;
-                            ray_stack.push_back(result.refraction);
+                            // result.refraction.parent_collision = segments_vector.size()-1;
+                            result.refraction.parent_collision = samples_vector[sample_i].size()-1;
+                            // ray_stack.push_back(result.refraction);
+                            samples.at(sample_i) = result.refraction;
                         }
+                        else
+                        {
+                            samples.at(sample_i).null = true;
+                        }
+                        
 
                         // if (result.reflection.intensity > ray::intensity_epsilon)
                         // {
                         //     result.reflection.parent_collision = segments_vector.size()-1;
                         //     ray_stack.push_back(result.reflection);
                         // }
+                        }
+                    
                     }
-                }
                 else
                 {
                     // Ray did not reach another media, add a data point at its end.
-                    segments_vector.emplace_back(segment{ray_.from, to, ray_.direction, 0.0f, ray_.intensity, ray_.media.attenuation, ray_.distance_traveled, ray_.media});
+                    // segments_vector.emplace_back(segment{ray_.from, to, ray_.direction, 0.0f, ray_.intensity, ray_.media.attenuation, ray_.distance_traveled, ray_.media});
+                    samples_vector[sample_i].emplace_back(segment{ray_.from, to, ray_.direction, 0.0f, ray_.intensity, ray_.media.attenuation, ray_.distance_traveled, ray_.media});
+                    samples.at(sample_i).null = true;
                 }
+                    
+                }  
             }
         }
 

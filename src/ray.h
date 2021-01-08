@@ -4,12 +4,12 @@
 #include <LinearMath/btVector3.h>
 
 #include <units/units.h>
-
+#include "mesh.h"
 // Objective: define the characteristcs of the ray should have, like what is ray, segment and hit boundary
 // the ray function is the basis of combining with physics bullet to implement ray tracing algorithm
 // Note: try to interpert the each parameter of struct ray and struct segment, which are important to the following applcation
  
-class material;
+// class material;
 class mesh;
 
 namespace ray_physics {
@@ -26,6 +26,7 @@ struct ray
 
     static constexpr size_t max_depth = 12;
     static constexpr float intensity_epsilon = 1e-10; //TODO: test
+    bool null = false;
 };
 
 struct segment

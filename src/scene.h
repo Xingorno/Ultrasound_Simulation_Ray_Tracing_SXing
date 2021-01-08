@@ -33,8 +33,11 @@ public:
 
     void init();
 
-    template<unsigned int ray_count>
-    std::array<std::vector<ray_physics::segment>, ray_count> cast_rays();
+    // template<unsigned int ray_count>
+    // std::array<std::vector<ray_physics::segment>, ray_count> cast_rays();
+
+    template<unsigned int sample_count,unsigned int ray_count>
+    std::array<std::array<std::vector<ray_physics::segment>,sample_count>, ray_count> cast_rays(transducer_ & transducer);
 
     void step(float delta_time);
 
