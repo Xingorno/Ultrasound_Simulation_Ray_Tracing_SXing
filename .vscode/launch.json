@@ -4,12 +4,13 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
         {
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/burgercpp",
-            "args": ["examples/sphere/sphere.scene"],
+            "args": ["examples/ircad11_2/ircad11.scene"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

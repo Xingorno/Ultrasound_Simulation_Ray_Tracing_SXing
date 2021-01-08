@@ -16,7 +16,8 @@ set (burgercpp_SRC
         "src/psf.h"
         "src/transducer.h"
         "src/volume.h"
-        "src/wavefront/tiny_obj_loader.cpp")
+        "src/wavefront/tiny_obj_loader.cpp"
+        )
 
 add_executable(burgercpp ${burgercpp_SRC})
 

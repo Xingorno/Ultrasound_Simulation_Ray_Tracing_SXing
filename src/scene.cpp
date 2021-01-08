@@ -9,8 +9,9 @@
 #include <exception>
 
 //template std::array<std::vector<ray_physics::segment>, 256> scene::cast_rays<256>();
-template std::array<std::vector<ray_physics::segment>, 512> scene::cast_rays<512>();
-
+// template std::array<std::vector<ray_physics::segment>, 1024> scene::cast_rays<1024>();
+template std::array<std::vector<ray_physics::segment>, 2048> scene::cast_rays<2048>();
+// template std::array<std::vector<ray_physics::segment>, 512> scene::cast_rays<512>();
 scene::scene(const nlohmann::json & config, transducer_ & transducer) :
     transducer(transducer)
 {
@@ -39,7 +40,7 @@ void scene::init()
     {
         const auto full_path = working_dir + mesh.filename;
 
-        auto object = add_rigidbody_from_obj(full_path, mesh.deltas, scaling);
+        auto object = add_rigidbody_from_obj(full_path, mesh.deltas, scaling); // delta relates to the position of objects; scaling realtes to the scale of object in rendering scene
 
         object->setUserPointer(&mesh);
     }
@@ -58,7 +59,7 @@ std::array<std::vector<ray_physics::segment>, ray_count> scene::cast_rays()
     ///step the simulation
     if (m_dynamicsWorld)
     {
-        const float ray_start_step { 0.02f };
+        const float ray_start_step { 2.0f }; // move transducer along fixed gap [mm]
 
         for (auto & segments_vector : segments)
         {
@@ -66,6 +67,7 @@ std::array<std::vector<ray_physics::segment>, ray_count> scene::cast_rays()
         }
 
         //#pragma omp parallel for
+        // size_t ray_i = 685;
         for (size_t ray_i = 0; ray_i < ray_count; ray_i++)
         {
             auto & segments_vector = segments[ray_i];
@@ -78,31 +80,33 @@ std::array<std::vector<ray_physics::segment>, ray_count> scene::cast_rays()
                 ray first_ray
                 {
                     //transducer_pos + btVector3(0,0,ray_start_step * ray_i),
-                    transducer.element(ray_i).position,                          // from
+                    //transducer.element(ray_i).position + btVector3(0, 0, -ray_start_step * indexMove ),
+                    transducer.element(ray_i).position,                          // from [mm]
                     transducer.element(ray_i).direction,                         // initial direction
                     0,                                                           // depth
                     materials.at(starting_material),
                     nullptr,
                     initial_intensity,
                     transducer.frequency,
-                    units::length::millimeter_t(0),                              // distance traveled
+                    units::length::millimeter_t(0),                              // distance traveled [mm]
                     0                                                            // previous ray
                 };
                 ray_stack.push_back(first_ray);
             }
-
+            // indexMove++;
             while (ray_stack.size() > 0)
             {
                 // Pop a ray from the stack and check if it collides
 
                 auto & ray_ = ray_stack.at(ray_stack.size()-1);
 
-                float r_length = ray_physics::max_ray_length(ray_);
-                auto to = ray_.from + enlarge(ray_.direction, r_length);
+                float r_length = ray_physics::max_ray_length(ray_); //[mm]
+                auto to = ray_.from + enlarge(ray_.direction, r_length); //[mm]
+            
+                btCollisionWorld::ClosestRayResultCallback closestResults(ray_.from + ray_.direction * 0.1,to); // adding ray_direction * 0.1 is for uncorrect ray tracing operation nearby the "from" point 
 
-                btCollisionWorld::ClosestRayResultCallback closestResults(ray_.from + 0.1f * ray_.direction,to);
+                m_dynamicsWorld->rayTest(ray_.from + ray_.direction * 0.1,to,closestResults);
 
-                m_dynamicsWorld->rayTest(ray_.from + 0.1f * ray_.direction,to,closestResults);
                 tests++;
 
                 ray_stack.pop_back();
@@ -114,6 +118,7 @@ std::array<std::vector<ray_physics::segment>, ray_count> scene::cast_rays()
                         // Substract ray intensity according to distance traveled
                         auto distance_before_hit = ray_.distance_traveled;
                         auto intensity_before_hit = ray_.intensity;
+                        
                         ray_physics::travel(ray_, distance_in_mm(ray_.from, closestResults.m_hitPointWorld));
 
                         // Calculate refraction and reflection directions and intensities
@@ -122,21 +127,25 @@ std::array<std::vector<ray_physics::segment>, ray_count> scene::cast_rays()
 
                         auto result = ray_physics::hit_boundary(ray_, closestResults.m_hitPointWorld, closestResults.m_hitNormalWorld, *organ);
 
-                        // Register collision creating a segment from the beggining of the ray to the collision point
+                        // Register collision creating a segment from the beginning of the ray to the collision point
+                        //segments_vector.emplace_back(segment{ray_.from, closestResults.m_hitPointWorld, ray_.direction, result.reflected_intensity, intensity_before_hit, ray_.media.attenuation, result.reflection.distance_traveled, ray_.media});
+
                         segments_vector.emplace_back(segment{ray_.from, closestResults.m_hitPointWorld, ray_.direction, result.reflected_intensity, intensity_before_hit, ray_.media.attenuation, distance_before_hit, ray_.media});
 
                         // Spawn reflection and refraction rays
+                        // TODO: igonre reflection ray??
                         if (result.refraction.intensity > ray::intensity_epsilon)
+                        // if (result.refraction.intensity > 0.0001)
                         {   
                             result.refraction.parent_collision = segments_vector.size()-1;
                             ray_stack.push_back(result.refraction);
                         }
 
-                        if (result.reflection.intensity > ray::intensity_epsilon)
-                        {
-                            result.reflection.parent_collision = segments_vector.size()-1;
-                            ray_stack.push_back(result.reflection);
-                        }
+                        // if (result.reflection.intensity > ray::intensity_epsilon)
+                        // {
+                        //     result.reflection.parent_collision = segments_vector.size()-1;
+                        //     ray_stack.push_back(result.reflection);
+                        // }
                     }
                 }
                 else
@@ -191,7 +200,8 @@ void scene::parse_config(const nlohmann::json & config)
                     mat.at("mu0"),
                     mat.at("mu1"),
                     mat.at("sigma"),
-                    mat.at("specularity")
+                    mat.at("specularity"),
+                    mat.at("roughness")
                 };
         }
     }
@@ -224,12 +234,14 @@ void scene::parse_config(const nlohmann::json & config)
 
 void scene::create_empty_world()
 {
+    //collision configuration contains default setup for memory, collision setup
     m_collisionConfiguration = std::make_unique<btDefaultCollisionConfiguration>();
 
+    //use the default collision dispatcher. For parallel processing you can use a diffent dispatcher (see Extras/BulletMultiThreaded)
     m_dispatcher = std::make_unique<btCollisionDispatcher>(m_collisionConfiguration.get());
 
     m_broadphase = std::make_unique<btDbvtBroadphase>();
-
+    //the default constraint solver. For parallel processing you can use a different solver (see Extras/BulletMultiThreaded)
     m_solver = std::make_unique<btSequentialImpulseConstraintSolver>();
 
     m_dynamicsWorld = std::make_unique<btDiscreteDynamicsWorld>(m_dispatcher.get(),m_broadphase.get(),m_solver.get(),m_collisionConfiguration.get());
@@ -262,16 +274,22 @@ units::length::millimeter_t scene::distance_in_mm(const btVector3 & v1, const bt
     auto y_dist = abs(v1.getY() - v2.getY()) * spacing[1];
     auto z_dist = abs(v1.getZ() - v2.getZ()) * spacing[2];
 
-    return units::length::millimeter_t(sqrt(pow(x_dist,2) + pow(y_dist,2) + pow(z_dist,2)) * 10);
+    //mm
+    return units::length::millimeter_t(sqrt(pow(x_dist,2) + pow(y_dist,2) + pow(z_dist,2)));
+    //return units::length::millimeter_t(sqrt(pow(x_dist,2) + pow(y_dist,2) + pow(z_dist,2)) * 10);
 }
 
 btVector3 scene::enlarge(const btVector3 & versor, float mm) const
 {
-    assert(versor.length2() < 1.1f);
-
-    return mm/100.0f * btVector3 ( spacing[0] * versor.getX(),
+    // assert(versor.length2() < 1.1f);
+    //TODO: why needs to divide 100
+    return mm * btVector3 ( spacing[0] * versor.getX(),
                                    spacing[1] * versor.getY(),
                                    spacing[2] * versor.getZ() );
+
+    // return mm/100.0f * btVector3 ( spacing[0] * versor.getX(),
+    //                                spacing[1] * versor.getY(),
+    //                                spacing[2] * versor.getZ() );
 }
 
 btRigidBody * scene::add_rigidbody_from_obj(const std::string & fileName, std::array<float, 3> deltas, float scaling)
@@ -311,13 +329,13 @@ btRigidBody * scene::add_rigidbody_from_obj(const std::string & fileName, std::a
 }
 
 void scene::step(float delta_time)
-{
+{   // TODO: what does it mean?
     m_dynamicsWorld->stepSimulation(delta_time);
 }
 
-// TODO: Is this equals to distance_in_mm?
+
 units::length::millimeter_t scene::distance(const btVector3 & from, const btVector3 & to) const
 {
-    // TODO: Use scaling in this calculation
-    return units::length::millimeter_t(from.distance(to)*10.0f);
+    return units::length::millimeter_t(from.distance(to));//[mm]
+    //return units::length::millimeter_t(from.distance(to)*10.0f);
 }

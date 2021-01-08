@@ -54,5 +54,6 @@
         "streambuf": "cpp",
         "thread": "cpp",
         "typeinfo": "cpp"
-    }
+    },
+    "todo-tree.tree.showBadges": true
 }

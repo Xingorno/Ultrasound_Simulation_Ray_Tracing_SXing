@@ -14,7 +14,7 @@
  * It is defined amongst a bounded range, since outside of it it's value is 0.
  *
  * It has three diferent ranges: axial, lateral and elevation.
- * The axial range varies according to frequency.
+ * The axial resolution varies according to frequency.
  * Lateral and elevation ranges vary according to distance to the transducer.
  *
  * The discretization is done around the center of the psf. Each voxel has a
@@ -24,6 +24,7 @@
  * smaller (near the focus zone), there will be zeroed voxels.
  */
 template <size_t axial_size, size_t lateral_size, size_t elevation_size, unsigned int resolution_micrometers>
+//TODO: axial resolution, lateral resolution and elevation resolution should be different
 class psf
 {
     static_assert(axial_size % 2, "axial_size must be an odd positive integer");
@@ -54,6 +55,12 @@ public:
         {
             const float y = i * resolution - half_lateral; // [mm]
             lateral_kernel[i] = lateral_function(y);
+        }
+
+        for (size_t i = 0; i < elevation_size; i++)
+        {
+            const float z = i * resolution - half_elevation;
+            elevation_kernel[i] = elevation_function(z);
         }
     }
 
@@ -89,6 +96,13 @@ private:
         using namespace std;
 
         return exp(-0.5f*(pow(y,2)/var_y));
+    }
+
+    float elevation_function(const float z) const
+    {
+        using namespace std;
+        
+        return exp(-0.5f*(pow(z, 2)/var_z));
     }
 
     const float var_x, var_y, var_z;

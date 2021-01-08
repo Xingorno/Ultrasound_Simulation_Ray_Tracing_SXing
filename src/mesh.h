@@ -8,7 +8,7 @@
 // Note: how to assign the parameters/attributes to the different parts of objects
 struct material
 {
-    float impedance, attenuation, mu0, mu1, sigma, specularity;
+    float impedance, attenuation, mu0, mu1, sigma, specularity,/*specular(+infinite) -> diffuse (0)*/ roughness;
 };
 
 struct mesh

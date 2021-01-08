@@ -25,7 +25,7 @@ struct ray
     unsigned short parent_collision; // position in collision vector
 
     static constexpr size_t max_depth = 12;
-    static constexpr float intensity_epsilon = 1e-10;
+    static constexpr float intensity_epsilon = 1e-10; //TODO: test
 };
 
 struct segment
@@ -49,6 +49,7 @@ struct hit_result { float reflected_intensity; ray reflection, refraction; };
 hit_result hit_boundary(const ray & r, const btVector3 &hit_point, const btVector3 & surface_normal, const mesh & collided_mesh);
 
 // Advance through homogeneous media and decrease intensity accordingly
+units::length::millimeter_t segment_length_in_mm(const btVector3 & v1, const btVector3 & v2);
 void travel(ray & r, units::length::millimeter_t mm);
 
 bool should_travel(const ray & r);
@@ -66,6 +67,9 @@ float reflection_intensity(const float intensity_in, const float media_1, const 
 // Intensity reflected back to the transducer when a ray passes through an interface.
 float reflected_intensity(const float ray_intensity, const float incidence_angle, const material & ray_media, const material & colliding_media);
 
+btVector3 random_unit_vector(btVector3 v, float cos_theta);
+
+float power_cosine_variate(int v);
 } // end ray_physics
 
 #endif // RAY_H

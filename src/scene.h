@@ -16,14 +16,16 @@
 #include <nlohmann/json.hpp>
 #include <units/units.h>
 
-// Objective: construct the scene, including how the ray interacts with mesh model, and storing the reflected echo term (which is for simulated US image)
+// Objective: construct the scene, including how the ray interacts with mesh models, and storing the reflected echo term (which is for simulated US image)
 // Note: clarify the process of ray interacting with objects
 // This part is the most difficult part to implement 
 
 class scene
 {
     // using transducer_ = transducer<512>;
-    typedef ::transducer<512> transducer_;
+    // typedef ::transducer<1024> transducer_;
+    typedef ::transducer<2048> transducer_;
+    // typedef ::transducer<512> transducer_;
     // using transducer = transducer<512>;
 public:
     explicit scene(const nlohmann::json & config, transducer_ & transducer);
@@ -37,6 +39,8 @@ public:
     void step(float delta_time);
 
     units::length::millimeter_t distance(const btVector3 & from, const btVector3 & to) const;
+
+    int indexMove = 0;
 
 protected:
     std::string working_dir;

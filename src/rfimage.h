@@ -5,14 +5,17 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <array>
 #include <units/units.h>
+#include <iostream>
+#include <fstream>
+
 
 #include "psf.h"
-
+using namespace std;
 /**
  * Radio-frequency image.
  *
- * Stores the resulting echoes of the ultrasound colliding with tissues.
- * Each column should gather information from a single transducer element.
+ * Stores the resulting echoes of the ultrasound wave interacting with tissues.
+ * Each column stands for information from a single transducer element.
  * The number of rows is calculated automatically according to maximum travel
  * time of the ultrasound pulse, psf's axial resolution, and average speed of sound.
  */
@@ -97,29 +100,32 @@ public:
     template <typename psf_>
     void convolve(const psf_ & p)
     {
+        // TODO: test
         // Convolve using only axial kernel and store in intermediate buffer
+        int half_axial = p.get_axial_size()/2;
         for (int col = 0; col < intensities.cols; col++) //each column is a different TE
         {
-            for (int row = p.get_axial_size(); row < intensities.rows - p.get_axial_size(); row++) // each row holds information from along a ray
+            for (int row = half_axial; row < intensities.rows - half_axial; row++) // each row holds information from along a ray
             {
                 float convolution = 0;
                 for (int kernel_i = 0; kernel_i < p.get_axial_size(); kernel_i++)
                 {
-                    convolution += intensities.at<float>(row + kernel_i, col) * p.axial_kernel[kernel_i];
+                    convolution += intensities.at<float>(row - half_axial+ kernel_i, col) * p.axial_kernel[kernel_i];
                 }
                 conv_axial_buffer.at<float>(row,col) = convolution;
             }
         }
 
         // Convolve intermediate buffer using lateral kernel
-        for (int row = p.get_axial_size(); row < conv_axial_buffer.rows - p.get_axial_size(); row++) // each row holds information from along a ray
+        int half_lateral =  p.get_lateral_size() / 2;
+        for (int row = 0; row < conv_axial_buffer.rows; row++) // each row holds information from along a ray
         {
-            for (int col = p.get_lateral_size() / 2; col < conv_axial_buffer.cols - p.get_lateral_size(); col++) //each column is a different TE
+            for (int col = half_lateral; col < conv_axial_buffer.cols - half_lateral; col++) //each column is a different TE
             {
                 float convolution = 0;
                 for (int kernel_i = 0; kernel_i < p.get_lateral_size(); kernel_i++)
                 {
-                    convolution += conv_axial_buffer.at<float>(row, col + kernel_i) * p.lateral_kernel[kernel_i];
+                    convolution += conv_axial_buffer.at<float>(row, col - half_lateral + kernel_i) * p.lateral_kernel[kernel_i];
                 }
                 intensities.at<float>(row,col) = convolution;
             }
@@ -131,16 +137,20 @@ public:
         double min, max;
         cv::minMaxLoc(intensities, &min, &max);
 
-        save("prelog.png");
+        cv::imwrite("prelog_rf.png", intensities);
+        writeMatToFile(intensities, "prelog_rf.txt");
 
         for (size_t i = 0; i < max_rows * columns; i++)
         {
             intensities.at<float>(i) = std::log10(intensities.at<float>(i)+1)/std::log10(max+1);
         }
-
+        writeMatToFile(intensities, "postlog_rf.txt");
+        cv::imwrite("postlog_rf.png", intensities);
         // apply scan conversion using preprocessed mapping
         constexpr float invalid_color = 0.0f;
-        cv::remap(intensities, scan_converted, map_y, map_x, CV_INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar(invalid_color)); // TODO: verify this function
+        //TODO: Test
+        cv::remap(intensities, scan_converted, map_y, map_x, CV_INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar(invalid_color)); 
+        writeMatToFile(scan_converted, "Simulated_US.txt");
     }
 
     void save(const std::string & filename) const
@@ -172,6 +182,29 @@ public:
         }
         std::cout << std::endl;
     }
+
+
+    void writeMatToFile(cv::Mat& m, const char* filename)
+    {
+    std::ofstream fout(filename);
+
+    if(!fout)
+    {
+        cout<<"File Not Opened"<<endl;  return;
+    }
+
+    for(int i=0; i<m.rows; i++)
+    {
+        for(int j=0; j<m.cols; j++)
+        {
+            fout<<m.at<float>(i,j)<<"\t";
+        }
+        fout<<endl;
+    }
+
+    fout.close();
+}
+
 
 private:
     // Create constexpr variables to use type operations later
@@ -209,6 +242,7 @@ private:
                 units::angle::radian_t angle = units::angle::radian_t(std::atan2(fj, fi));
 
                 // Invalid values are OK here. cv::remap checks for them and assigns them a special color.
+                // Note: in scan converted image, given that the pixel size is "ratio".
                 map_x.at<float>(i,j) = (r*ratio-radius.to<float>())/(max_travel_time*speed_of_sound*0.001f) * (float)rf_height;
                 map_y.at<float>(i,j) = ((angle - (-total_angle/2)) / (total_angle)) * (float)rf_width;
             }

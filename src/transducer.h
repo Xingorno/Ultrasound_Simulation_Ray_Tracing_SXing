@@ -19,6 +19,7 @@
  * 
  */
 
+// DONE: Test transducer
 
 template<size_t transducer_elements>
 class transducer
@@ -26,16 +27,16 @@ class transducer
 public:
     struct transducer_element
     {
-        btVector3 position;
-        btVector3 direction;
+        btVector3 position; // unit: mm. 
+        btVector3 direction; // unit
     };
 
-    transducer(const float frequency, const units::length::centimeter_t radius, units::length::millimeter_t transducer_element_separation,
+    transducer(const float frequency/*MHz*/, const units::length::centimeter_t radius, units::length::millimeter_t transducer_element_separation,
                const btVector3 & position, const std::array<units::angle::degree_t, 3> & angles) :
         frequency(frequency),
         radius(radius),
-        position(position),
-        angles(angles)
+        position(position), //unit: mm. position of the transducer with respect to world coordinate system (3D scene)
+        angles(angles) // unit: degree. angles of the transducer with respect ot world coordinate system (3D scene), rotation order Z-> X -> Y
     {
         using namespace units::angle;
         using namespace units::literals;
@@ -56,22 +57,28 @@ public:
         {
             elements[t] = transducer_element
             {
-                // TODO: pay attention to the order of matrix rotation, it didn't follow the intrinsic rotation and extrinsic rotation.
-                position + radius.to<float>() * btVector3 ( std::sin(angle.to<float>()), std::cos(angle.to<float>()), 0 ).rotate(btVector3(0,0,1), z_angle.to<float>())
+                
+                position + 10*radius.to<float>() * btVector3 ( std::sin(angle.to<float>()), std::cos(angle.to<float>()), 0 ).rotate(btVector3(0,0,1), z_angle.to<float>())
                                                                                                                          .rotate(btVector3(1,0,0), x_angle.to<float>())
                                                                                                                          .rotate(btVector3(0,1,0), y_angle.to<float>()), // position
                 btVector3 ( std::sin(angle.to<float>()), std::cos(angle.to<float>()), 0 ).rotate(btVector3(0,0,1), z_angle.to<float>())
                                                                                          .rotate(btVector3(1,0,0), x_angle.to<float>())
                                                                                          .rotate(btVector3(0,1,0), y_angle.to<float>())  // direction
             };
-
+            // std::cout << std::sin(angle.to<float>()) << "," << std::cos(angle.to<float>())<< std::endl;
+            // btVector3 a = radius.to<float>() *btVector3 ( 1, 1, 1 ).rotate(btVector3(0,0,1), z_angle.to<float>());
+            // btVector3 b = radius.to<float>() *btVector3 ( 1, 1, 1 ).rotate(btVector3(1,0,0), x_angle.to<float>());
+            // btVector3 c = radius.to<float>() *btVector3 ( 1, 1, 1 ).rotate(btVector3(0,1,0), y_angle.to<float>());
+            // btVector3 d = 10* radius.to<float>() *btVector3 (std::sin(angle.to<float>()), std::cos(angle.to<float>()), 0 ).rotate(btVector3(0,0,1), z_angle.to<float>()).rotate(btVector3(1,0,0), x_angle.to<float>()).rotate(btVector3(0,1,0), y_angle.to<float>());
             angle = angle + amplitude;
+            std::cout << angle << std::endl;
         }
 
     }
 
     transducer_element element(size_t i) const
     {
+        
         return elements.at(i);
     }
 

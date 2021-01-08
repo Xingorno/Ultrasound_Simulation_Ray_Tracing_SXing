@@ -47,7 +47,7 @@ public:
     {
         constexpr float resolution = resolution_micrometers / 1000.0f; // [mm]
 
-        // TODO: Change static_cast to linear interpolation?
+        // UNDO: note resolution from the image displayed
         const unsigned int x = static_cast<unsigned int>(x_millis / resolution) % size;
         const unsigned int y = static_cast<unsigned int>(y_millis / resolution) % size;
         const unsigned int z = static_cast<unsigned int>(z_millis / resolution) % size;
