@@ -94,8 +94,8 @@ std::array<std::array<std::vector<ray_physics::segment>, sample_count>, ray_coun
                 {
                     //transducer_pos + btVector3(0,0,ray_start_step * ray_i),
                     //transducer.element(ray_i).position + btVector3(0, 0, -ray_start_step * indexMove ),
-                    transducer.element(ray_i).position,                          // from [mm]
-                    transducer.element(ray_i).direction,                         // initial direction
+                    transducer.element(ray_i, sample_i).position,                          // from [mm]
+                    transducer.element(ray_i, sample_i).direction,                         // initial direction
                     0,                                                           // depth
                     materials.at(starting_material),
                     nullptr,

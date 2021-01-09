@@ -22,7 +22,7 @@ constexpr float transducer_frequency = 4.5f; // [Mhz]
 // TODO: which way to get axial resolution is more persuasive?
 constexpr millimeter_t axial_resolution = millimeter_t(1.45f / transducer_frequency); // [mm], the division can be deduced from Burger13 
 constexpr size_t transducer_elements = 2048;
-constexpr size_t samples_te = 5; 
+constexpr size_t samples_count = 5; 
 constexpr radian_t transducer_amplitude = 60_deg;
 // TODO: how to measure this model(partial circle)
 constexpr centimeter_t transducer_radius = 3_cm;
@@ -34,7 +34,8 @@ constexpr unsigned int resolution_axial = 145;//145; // [μm], from Burger13
 using psf_ = psf<7, 13, 7, resolution_axial>;
 using volume_ = volume<256, resolution_axial>;
 using rf_image_ = rf_image<transducer_elements, max_travel_time.to<unsigned int>(), static_cast<unsigned int>(axial_resolution.to<float>()*1000.0f/*mm->μm*/)>;
-using transducer_ = transducer<transducer_elements>;
+// using transducer_ = transducer<transducer_elements>;
+using transducer_ = transducer<transducer_elements, samples_count>;
 
 std::random_device rd;
 std::mt19937 generator(rd());
@@ -96,11 +97,11 @@ int main(int argc, char** argv)
             rf_image.clear();
 
             // auto rays = scene.cast_rays<transducer_elements>();
-            auto rays = scene.cast_rays<samples_te, transducer_elements>(transducer);
+            auto rays = scene.cast_rays<samples_count, transducer_elements>(transducer);
             for (unsigned int ray_i = 0; ray_i < rays.size(); ray_i++)
             {
                 const auto & ray = rays[ray_i];
-                for (unsigned int sample_i = 0; sample_i < samples_te; sample_i++)
+                for (unsigned int sample_i = 0; sample_i < samples_count; sample_i++)
                 {
                     const auto & sample = ray[sample_i];
                     // for (auto & segment : ray)

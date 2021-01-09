@@ -8,6 +8,7 @@
 #include <cassert>
 #include <cmath>
 #include <iostream>
+#include <random>
 
 //#define M_PI 3.14159
 
@@ -21,7 +22,8 @@
 
 // DONE: Test transducer
 
-template<size_t transducer_elements>
+template<size_t transducer_elements, size_t sample_count>
+// template<size_t transducer_elements>
 class transducer
 {
 public:
@@ -41,6 +43,10 @@ public:
         using namespace units::angle;
         using namespace units::literals;
 
+        std::random_device rd;  //Will be used to obtain a seed for the random number engine
+        std::mt19937 generator(rd()); //Standard mersenne_twister_engine seeded with rd()
+        std::normal_distribution<double> distribution(0.0, 0.005);
+
         assert(transducer_element_separation * transducer_elements < M_PI * radius);
 
         radian_t x_angle { angles[0] };
@@ -55,31 +61,50 @@ public:
 
         for (size_t t = 0; t < transducer_elements; t++)
         {
-            elements[t] = transducer_element
+            auto & samples_elements = elements[t];
+
+            for(size_t i = 0; i < sample_count; i++)
             {
-                
-                position + 10*radius.to<float>() * btVector3 ( std::sin(angle.to<float>()), std::cos(angle.to<float>()), 0 ).rotate(btVector3(0,0,1), z_angle.to<float>())
-                                                                                                                         .rotate(btVector3(1,0,0), x_angle.to<float>())
-                                                                                                                         .rotate(btVector3(0,1,0), y_angle.to<float>()), // position
-                btVector3 ( std::sin(angle.to<float>()), std::cos(angle.to<float>()), 0 ).rotate(btVector3(0,0,1), z_angle.to<float>())
+                double delta_x = distribution(generator);
+                double delta_z = distribution(generator);
+
+                samples_elements[i] = transducer_element
+                {   
+                    position + btVector3 (delta_x, 10*radius.to<float>(), delta_z).rotate(btVector3(0,0,1), -angle.to<float>()).rotate(btVector3(0,0,1), z_angle.to<float>())
+                                                                                                                                        .rotate(btVector3(1,0,0), x_angle.to<float>())
+                                                                                                                                        .rotate(btVector3(0,1,0), y_angle.to<float>()), // position
+                    btVector3 ( std::sin(angle.to<float>()), std::cos(angle.to<float>()), 0 ).rotate(btVector3(0,0,1), z_angle.to<float>())
                                                                                          .rotate(btVector3(1,0,0), x_angle.to<float>())
                                                                                          .rotate(btVector3(0,1,0), y_angle.to<float>())  // direction
-            };
-            // std::cout << std::sin(angle.to<float>()) << "," << std::cos(angle.to<float>())<< std::endl;
-            // btVector3 a = radius.to<float>() *btVector3 ( 1, 1, 1 ).rotate(btVector3(0,0,1), z_angle.to<float>());
-            // btVector3 b = radius.to<float>() *btVector3 ( 1, 1, 1 ).rotate(btVector3(1,0,0), x_angle.to<float>());
-            // btVector3 c = radius.to<float>() *btVector3 ( 1, 1, 1 ).rotate(btVector3(0,1,0), y_angle.to<float>());
-            // btVector3 d = 10* radius.to<float>() *btVector3 (std::sin(angle.to<float>()), std::cos(angle.to<float>()), 0 ).rotate(btVector3(0,0,1), z_angle.to<float>()).rotate(btVector3(1,0,0), x_angle.to<float>()).rotate(btVector3(0,1,0), y_angle.to<float>());
+
+                    // position + 10*radius.to<float>() * btVector3 ( std::sin(angle.to<float>()), std::cos(angle.to<float>()), 0 ).rotate(btVector3(0,0,1), z_angle.to<float>())
+                    //                                                                                                      .rotate(btVector3(1,0,0), x_angle.to<float>())
+                    //                                                                                                      .rotate(btVector3(0,1,0), y_angle.to<float>()), // position
+                    // btVector3 ( std::sin(angle.to<float>()), std::cos(angle.to<float>()), 0 ).rotate(btVector3(0,0,1), z_angle.to<float>())
+                    //                                                                      .rotate(btVector3(1,0,0), x_angle.to<float>())
+                    //                                                                      .rotate(btVector3(0,1,0), y_angle.to<float>())  // direction
+                };
+                // std::cout << std::sin(angle.to<float>()) << "," << std::cos(angle.to<float>())<< std::endl;
+                // btVector3 a = radius.to<float>() *btVector3 ( 1, 1, 1 ).rotate(btVector3(0,0,1), z_angle.to<float>());
+                // btVector3 b = radius.to<float>() *btVector3 ( 1, 1, 1 ).rotate(btVector3(1,0,0), x_angle.to<float>());
+                // btVector3 c = radius.to<float>() *btVector3 ( 1, 1, 1 ).rotate(btVector3(0,1,0), y_angle.to<float>());
+                // btVector3 d = 10* radius.to<float>() *btVector3 (std::sin(angle.to<float>()), std::cos(angle.to<float>()), 0 ).rotate(btVector3(0,0,1), z_angle.to<float>()).rotate(btVector3(1,0,0), x_angle.to<float>()).rotate(btVector3(0,1,0), y_angle.to<float>());
+                
+
+            }
             angle = angle + amplitude;
             std::cout << angle << std::endl;
+            
         }
 
     }
 
-    transducer_element element(size_t i) const
-    {
-        
-        return elements.at(i);
+    transducer_element element(size_t index_ray, size_t index_sample) const
+    {   
+        auto samples_element = elements[index_ray];
+        return samples_element[index_sample];
+        // return elements[index_ray][index_sample];
+        // return elements.at(i);
     }
 
     void print(bool direction) const
@@ -103,7 +128,9 @@ public:
 private:
     const units::length::millimeter_t radius;
 
-    std::array<transducer_element, transducer_elements> elements;
+    // std::array<transducer_element, transducer_elements> elements;
+    std::array<std::array<transducer_element, sample_count>, transducer_elements> elements;
+
 };
 
 #endif // TRANSDUCER_H
