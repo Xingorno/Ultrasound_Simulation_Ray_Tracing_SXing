@@ -85,19 +85,26 @@ int main(int argc, char** argv)
     // Step 2.4 radio frequency image
     rf_image_ rf_image { transducer_radius, transducer_amplitude };
 
-    std::cout << max_travel_time << std::endl;
+    // std::cout << max_travel_time << std::endl;
 
     try
     {
         scene scene { json, transducer };
 
         scene.step(1000.0f);
-        while(true)
+        // while(true)
+        //Set transducer movement 
+        for(int indexMov = 0; indexMov < 20; indexMov++)
         {
+            auto temp_pos = (float)t_pos[2] - indexMov;
+            std::array<units::angle::degree_t, 3> movedAngle = {degree_t((float)t_dir[0]+0), degree_t((float)t_dir[1] + 0), degree_t((float)t_dir[2]+0)};
+            transducer_ transducer_temp(transducer_frequency, transducer_radius, transducer_element_separation,
+                           btVector3(t_pos[0], t_pos[1], temp_pos), movedAngle);
             rf_image.clear();
 
             // auto rays = scene.cast_rays<transducer_elements>();
-            auto rays = scene.cast_rays<samples_count, transducer_elements>(transducer);
+            auto rays = scene.cast_rays<samples_count, transducer_elements>(transducer_temp);
+            // auto rays = scene.cast_rays<samples_count, transducer_elements>(transducer);
             for (unsigned int ray_i = 0; ray_i < rays.size(); ray_i++)
             {
                 const auto & ray = rays[ray_i];
@@ -150,8 +157,6 @@ int main(int argc, char** argv)
 
             rf_image.save("Simulated_US.png");
             rf_image.show();
-
-           
             
         }
     }

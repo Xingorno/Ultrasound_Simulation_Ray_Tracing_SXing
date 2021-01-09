@@ -84,16 +84,11 @@ public:
                     //                                                                      .rotate(btVector3(1,0,0), x_angle.to<float>())
                     //                                                                      .rotate(btVector3(0,1,0), y_angle.to<float>())  // direction
                 };
-                // std::cout << std::sin(angle.to<float>()) << "," << std::cos(angle.to<float>())<< std::endl;
-                // btVector3 a = radius.to<float>() *btVector3 ( 1, 1, 1 ).rotate(btVector3(0,0,1), z_angle.to<float>());
-                // btVector3 b = radius.to<float>() *btVector3 ( 1, 1, 1 ).rotate(btVector3(1,0,0), x_angle.to<float>());
-                // btVector3 c = radius.to<float>() *btVector3 ( 1, 1, 1 ).rotate(btVector3(0,1,0), y_angle.to<float>());
-                // btVector3 d = 10* radius.to<float>() *btVector3 (std::sin(angle.to<float>()), std::cos(angle.to<float>()), 0 ).rotate(btVector3(0,0,1), z_angle.to<float>()).rotate(btVector3(1,0,0), x_angle.to<float>()).rotate(btVector3(0,1,0), y_angle.to<float>());
-                
+     
 
             }
             angle = angle + amplitude;
-            std::cout << angle << std::endl;
+            // std::cout << angle << std::endl;
             
         }
 

@@ -63,23 +63,22 @@ ray_physics::hit_result ray_physics::hit_boundary(const ray & r, const btVector3
 
     const float refr_ratio = r.media.impedance / material_after_collision.impedance;
     
-    // Refraction angle
-    float refraction_angle = 1 - refr_ratio*refr_ratio * (1 - incidence_angle*incidence_angle);
-    const bool total_internal_reflection = refraction_angle < 0;
+    // // Refraction angle
+    // float refraction_angle = 1 - refr_ratio*refr_ratio * (1 - incidence_angle*incidence_angle);
+    // const bool total_internal_reflection = refraction_angle < 0;
 
-    refraction_angle = std::sqrt(refraction_angle);
+    // refraction_angle = std::sqrt(refraction_angle);
     
-    // Refraction direction
-    // const auto refraction_direction = snells_law(r.direction, surface_normal, incidence_angle, refraction_angle, refr_ratio); 
-    const auto refraction_direction = snells_law(r.direction, random_normal, incidence_angle, refraction_angle, refr_ratio);
+    // // Refraction direction
+    // const auto refraction_direction = snells_law(r.direction, random_normal, incidence_angle, refraction_angle, refr_ratio);
     
     /* Orthognal incidence */
-    // float refraction_angle = incidence_angle;
-    // const bool total_internal_reflection = refraction_angle < 0;
-    // const auto refraction_direction = r.direction;
+    float refraction_angle = incidence_angle;
+    const bool total_internal_reflection = refraction_angle < 0;
+    const auto refraction_direction = r.direction;
     
     // Reflection direction
-    // const btVector3 reflection_direction = r.direction + 2*incidence_angle * surface_normal;
+    
     const btVector3 reflection_direction = r.direction + 2*incidence_angle * random_normal;
     
     // /* Only consider orthogonal incidence */
