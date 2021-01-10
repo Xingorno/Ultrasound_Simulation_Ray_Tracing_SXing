@@ -21,10 +21,9 @@ constexpr meters_per_second_t speed_of_sound = 1500_m / 1_s; // [μm/μs], [m/s]
 constexpr float transducer_frequency = 4.5f; // [Mhz]
 // TODO: which way to get axial resolution is more persuasive?
 constexpr millimeter_t axial_resolution = millimeter_t(1.45f / transducer_frequency); // [mm], the division can be deduced from Burger13 
-constexpr size_t transducer_elements = 2048;
-constexpr size_t samples_count = 5; 
-constexpr radian_t transducer_amplitude = 60_deg;
-// TODO: how to measure this model(partial circle)
+constexpr size_t transducer_elements = 512;
+constexpr size_t samples_count = 20; 
+constexpr radian_t transducer_amplitude = 70_deg;
 constexpr centimeter_t transducer_radius = 3_cm;
 constexpr centimeter_t ultrasound_depth = 15_cm; // [15cm -> μm]
 
@@ -73,8 +72,6 @@ int main(int argc, char** argv)
     // std::cout << "transducer angles: " << t_dir[0]<<","<< t_dir[1] << "," << t_dir[2]<< std::endl;
     transducer_ transducer(transducer_frequency, transducer_radius, transducer_element_separation,
                            btVector3(t_pos[0], t_pos[1], t_pos[2]), transducer_angles);
-    //btVector3(-17.0, 1.2, 6.45); // liver
-    //btVector3(-19.5, 1.2, -0.45) // kidney
     
     // Step 2.2 scatter distribution
     static const volume_ texture_volume;

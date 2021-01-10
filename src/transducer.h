@@ -20,7 +20,6 @@
  * 
  */
 
-// DONE: Test transducer
 
 template<size_t transducer_elements, size_t sample_count>
 // template<size_t transducer_elements>
@@ -45,7 +44,7 @@ public:
 
         std::random_device rd;  //Will be used to obtain a seed for the random number engine
         std::mt19937 generator(rd()); //Standard mersenne_twister_engine seeded with rd()
-        std::normal_distribution<double> distribution(0.0, 0.005);
+        std::normal_distribution<double> distribution(0.0, 0.024);
 
         assert(transducer_element_separation * transducer_elements < M_PI * radius);
 

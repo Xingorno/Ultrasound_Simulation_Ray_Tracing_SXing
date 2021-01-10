@@ -81,14 +81,7 @@ ray_physics::hit_result ray_physics::hit_boundary(const ray & r, const btVector3
     
     const btVector3 reflection_direction = r.direction + 2*incidence_angle * random_normal;
     
-    // /* Only consider orthogonal incidence */
-    
-    // const auto refraction_direction = r.direction;
-    // const btVector3 reflection_direction = - r.direction;
-    // incidence_angle = 1;
-    // refraction_angle = 1;
-    // //
-    // //
+
 
     // Reflection intensity
     const auto intensity_refl = total_internal_reflection ?
@@ -104,7 +97,6 @@ ray_physics::hit_result ray_physics::hit_boundary(const ray & r, const btVector3
     const float back_to_transducer_intensity = reflected_intensity(r.intensity, incidence_angle, r.media, material_after_collision);
 
     // Add two more rays to the stack
-    // TODO: Test r.distance_traveled
 
     // units::length::millimeter_t temp = segment_length_in_mm(r.from, hit_point);
     // units::length::millimeter_t distanceTraved_new = temp + r.distance_traveled;

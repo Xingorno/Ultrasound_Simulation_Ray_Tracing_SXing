@@ -100,7 +100,6 @@ public:
     template <typename psf_>
     void convolve(const psf_ & p)
     {
-        // TODO: test
         // Convolve using only axial kernel and store in intermediate buffer
         int half_axial = p.get_axial_size()/2;
         for (int col = 0; col < intensities.cols; col++) //each column is a different TE
@@ -148,7 +147,6 @@ public:
         cv::imwrite("postlog_rf.png", intensities);
         // apply scan conversion using preprocessed mapping
         constexpr float invalid_color = 0.0f;
-        //TODO: Test
         cv::remap(intensities, scan_converted, map_y, map_x, CV_INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar(invalid_color)); 
         writeMatToFile(scan_converted, "Simulated_US.txt");
     }

@@ -11,7 +11,7 @@
 //template std::array<std::vector<ray_physics::segment>, 256> scene::cast_rays<256>();
 // template std::array<std::vector<ray_physics::segment>, 1024> scene::cast_rays<1024>();
 // template std::array<std::vector<ray_physics::segment>, 2048> scene::cast_rays<2048>();
-template std::array<std::array<std::vector<ray_physics::segment>, 5>, 2048> scene::cast_rays<5, 2048>(transducer_ & transducer);
+template std::array<std::array<std::vector<ray_physics::segment>, 20>, 512> scene::cast_rays<20, 512>(transducer_ & transducer);
 // template std::array<std::vector<ray_physics::segment>, 512> scene::cast_rays<512>();
 scene::scene(const nlohmann::json & config, transducer_ & transducer) :
     transducer(transducer)
@@ -86,7 +86,7 @@ std::array<std::array<std::vector<ray_physics::segment>, sample_count>, ray_coun
             for(size_t sample_i=0; sample_i < sample_count; sample_i++)
             {
                 std::vector<ray> ray_stack;
-                ray_stack.reserve(ray::max_depth-1);// TODO: maybe not enough to get necessary information
+                ray_stack.reserve(ray::max_depth-1);
                 // std::array<ray, sample_count> samples;
                 // Add first ray
                 // {
@@ -109,7 +109,7 @@ std::array<std::array<std::vector<ray_physics::segment>, sample_count>, ray_coun
                 // for(size_t sample_i = 0; sample_i < sample_count; sample_i++)
                 // {
                 //     samples.at(sample_i) = first_ray;
-                //     // TODO: consider add stack 
+                //     
                 // }
                 // }
                 // indexMove++;
@@ -154,7 +154,7 @@ std::array<std::array<std::vector<ray_physics::segment>, sample_count>, ray_coun
                         // segments_vector.emplace_back(segment{ray_.from, closestResults.m_hitPointWorld, ray_.direction, result.reflected_intensity, intensity_before_hit, ray_.media.attenuation, distance_before_hit, ray_.media});
                         samples_vector[sample_i].emplace_back(segment{ray_.from, closestResults.m_hitPointWorld, ray_.direction, result.reflected_intensity, intensity_before_hit, ray_.media.attenuation, distance_before_hit, ray_.media});
                         // Spawn reflection and refraction rays
-                        // TODO: igonre reflection ray??
+                       
                         if (result.refraction.intensity > ray::intensity_epsilon)
                         // if (result.refraction.intensity > 0.0001)
                         {   
@@ -314,7 +314,7 @@ units::length::millimeter_t scene::distance_in_mm(const btVector3 & v1, const bt
 btVector3 scene::enlarge(const btVector3 & versor, float mm) const
 {
     // assert(versor.length2() < 1.1f);
-    //TODO: why needs to divide 100
+   
     return mm * btVector3 ( spacing[0] * versor.getX(),
                                    spacing[1] * versor.getY(),
                                    spacing[2] * versor.getZ() );

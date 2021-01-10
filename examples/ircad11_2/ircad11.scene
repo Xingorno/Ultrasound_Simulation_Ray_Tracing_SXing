@@ -2,7 +2,7 @@
 {
   "workingDirectory": "examples/ircad11_2/",
   "transducerPosition": [10, 35, -30],
-  "transducerAngles": [0, 0, 190],
+  "transducerAngles": [0, 0, 200],
   "materials": [
     {
       "name": "GEL",
